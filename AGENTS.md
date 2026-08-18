@@ -1,8 +1,19 @@
-# STM32H745ZIT6 双核 DSP 模板
+# STM32H745ZIT6 Dual-Core DSP Template / 双核 DSP 模板
+
+This is a CMake project generated with STM32CubeMX 6.18 for Cortex-M7 and Cortex-M4; CMSIS-DSP is linked only to CM7. This file is the shared entry point for people and AI tools. Treat `Project.ioc`, both linker scripts, and actual build results as the source of truth.
 
 STM32CubeMX 6.18 生成的 CMake 工程：Cortex-M7 + Cortex-M4，CMSIS-DSP 仅接入 CM7。本文件是人和 AI 共用的模板入口；工程事实以 `Project.ioc`、两核链接脚本和实际构建结果为准。
 
-## 使用原则
+## English quick reference
+
+- Preserve existing work and keep the template minimal. Prefer USER CODE blocks, project-owned files, both core-specific `CMakeLists.txt` files, and `Linker/` when making changes.
+- The baseline is STM32H745ZIT6 with a 24 MHz HSE, CM7 at 480 MHz, CM4 at 240 MHz, and separate 1 MB Flash regions starting at `0x08000000` and `0x08100000`.
+- Keep DMA buffers in the non-cacheable `.dma_buffer` section, shared dual-core data in `.ram_shared`, and large cacheable data in `.axi_ram`. `volatile` is not a synchronization primitive; use memory barriers and HSEM or IPCC notifications.
+- With `DUAL_CORE_BOOT_SYNC_SEQUENCE`, CM4 enters STOP and CM7 releases HSEM_0 after clock setup. Reserve HSEM_0 for boot synchronization and use other semaphore IDs for application traffic.
+- Clean all three build directories before switching Debug and Release. Build both configurations from clean directories and program CM7 before CM4.
+- CMSIS-DSP 1.17.0 is built only for CM7. After CubeMX regeneration, review clock, power, option bytes, linker origins, cache/MPU settings, boot synchronization, interrupt handlers, and generated duplicates.
+
+## Working principles / 使用原则
 
 - 修改前先看 `git status`；保留已有改动，不使用破坏性 reset/checkout。
 - 保持最小模板：没有明确需求时，不引入 RTOS、OpenAMP、固定 mailbox、自动烧录框架或多层封装。
@@ -12,7 +23,7 @@ STM32CubeMX 6.18 生成的 CMake 工程：Cortex-M7 + Cortex-M4，CMSIS-DSP 仅�
 
 主要目录：`CM7/`、`CM4/`、`Common/`、`Drivers/`、`cmake/{generated,toolchains}/`、`Project.ioc`。
 
-## 硬件基线
+## Hardware baseline / 硬件基线
 
 | 项 | 当前值 |
 |---|---|
@@ -27,7 +38,7 @@ STM32CubeMX 6.18 生成的 CMake 工程：Cortex-M7 + Cortex-M4，CMSIS-DSP 仅�
 
 复用到新板前必须确认 HSE、电源模式、Option Bytes 和两个 `FLASH ORIGIN` 一致。
 
-## 内存布局
+## Memory map / 内存布局
 
 | 区域 | CM7 地址 | CM4 地址 | 大小 | 用途 |
 |---|---:|---:|---:|---|
@@ -54,7 +65,7 @@ __attribute__((section(".backup_sram"))) uint32_t boot_counter;
 
 除 `.itcm` 外，上述自定义 RAM section 均为 `NOLOAD`，使用前自行初始化。Backup SRAM 还需开启 BKPRAM 时钟、备份域写访问和 Backup Regulator。
 
-## Cache、MPU 和双核约定
+## Cache, MPU, and dual-core conventions / Cache、MPU 和双核约定
 
 CM7 顺序：`MPU_Config()` → `SCB_EnableICache()` → `SCB_EnableDCache()`。
 
@@ -68,7 +79,7 @@ CM7 顺序：`MPU_Config()` → `SCB_EnableICache()` → `SCB_EnableDCache()`。
 - 共享数据放 `.ram_shared`；`volatile` 不是同步原语，发布/读取需要 `__DMB()` 和 HSEM/IPCC 等通知。
 - 两个 ELF 独立链接，共享结构必须由公共定义保证布局一致。
 
-## 双核启动与 HSEM
+## Dual-core boot and HSEM / 双核启动与 HSEM
 
 - 正常双核启动定义 `DUAL_CORE_BOOT_SYNC_SEQUENCE`：CM4 进入 STOP，CM7 配置时钟后释放 HSEM_0 唤醒 CM4。
 - CM4 唤醒后必须调用 `SystemCoreClockUpdate()`，再执行 `HAL_Init()`。
@@ -77,7 +88,7 @@ CM7 顺序：`MPU_Config()` → `SCB_EnableICache()` → `SCB_EnableDCache()`。
 - 模板不预置应用协议。实际项目可用 `.ram_shared` mailbox + HSEM；发送方写数据后 `__DMB()` 再释放，接收回调先 `__DMB()` 再读，并重新调用 `HAL_HSEM_ActivateNotification()`。
 - 单核调试时，注释对应核 `CMakeLists.txt` 中的 `DUAL_CORE_BOOT_SYNC_SEQUENCE`。
 
-## 构建与烧录
+## Build and program / 构建与烧录
 
 优先使用 STM32Cube VS Code 扩展：`CMake: Select Configure Preset` → `CMake: Build`。`.vscode/settings.json` 已绑定 Cube bundle。普通 PowerShell 可先设置：
 
@@ -111,7 +122,7 @@ STM32_Programmer_CLI -c port=SWD -rst
 - DSP 浮点常量使用 `f` 后缀；大数组放 `.axi_ram`，DMA buffer 放 `.dma_buffer`，不要放 DTCM。
 - 仓库仅保留嵌入式构建所需的 Source、头文件、可选后端、许可证和版本信息。
 
-## CubeMX 重新生成
+## CubeMX regeneration / CubeMX 重新生成
 
 会覆盖：两核 `mx-generated.cmake`、生成代码 USER CODE 块外内容、头文件、Startup，以及链接脚本的 heap/stack 设置。不会覆盖：USER CODE、自建 `Common` 文件、两核 `CMakeLists.txt`、`Drivers/CMSIS-DSP/` 和链接脚本自定义主体。
 
@@ -125,7 +136,7 @@ STM32_Programmer_CLI -c port=SWD -rst
 
 CubeMX 会额外生成被 `.gitignore` 忽略的根目录 toolchain/`mx-generated.cmake` 和两核根目录链接脚本。模板以 `cmake/{generated,toolchains}` 和两核 `Linker/` 为准；复制或提交前删除重复文件及三个 build 目录。
 
-## 最小验收
+## Minimum acceptance checks / 最小验收
 
 1. Debug 和 Release 均能从干净目录构建。
 2. 两核 ELF 的 Flash/RAM 地址、CPU/FPU 属性符合本文件。
