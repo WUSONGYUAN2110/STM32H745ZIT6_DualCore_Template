@@ -1,0 +1,12 @@
+build
+mx.scratch
+!.settings
+
+# CubeMX duplicate outputs generated outside this project's CMake layout.
+/gcc-arm-none-eabi.cmake
+/starm-clang.cmake
+/mx-generated.cmake
+/CM4/stm32h745xx_flash_CM4.ld
+/CM4/stm32h745xx_sram2_CM4.ld
+/CM7/stm32h745xx_flash_CM7.ld
+/CM7/stm32h745xx_sram1_CM7.ld

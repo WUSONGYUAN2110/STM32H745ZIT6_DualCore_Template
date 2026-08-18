@@ -1,0 +1,88 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "jlinkgdbtarget",
+            "request": "launch",
+            "name": "Debug CM7",
+            "origin": "snippet",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "deviceName": "STM32H745ZIT6",
+            "deviceCore": "Cortex-M7",
+            "serverDevice": "STM32H745ZI_M7",
+            "serverInterface": "SWD",
+            "serverSpeed": "4000",
+            "serverPort": "2331",
+            "serverReset": "Type 0: Normal",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/CM4/build/Project_CM4.elf",
+                    "symbolFileName": "${workspaceFolder}/CM4/build/Project_CM4.elf"
+                },
+                {
+                    "imageFileName": "${workspaceFolder}/CM7/build/Project_CM7.elf",
+                    "symbolFileName": "${workspaceFolder}/CM7/build/Project_CM7.elf"
+                }
+            ]
+        },
+        {
+            "type": "jlinkgdbtarget",
+            "request": "launch",
+            "name": "Debug CM4",
+            "origin": "snippet",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "deviceName": "STM32H745ZIT6",
+            "deviceCore": "Cortex-M4",
+            "serverDevice": "STM32H745ZI_M4",
+            "serverInterface": "SWD",
+            "serverSpeed": "4000",
+            "serverPort": "2331",
+            "serverReset": "Type 0: Normal",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/CM7/build/Project_CM7.elf",
+                    "symbolFileName": "${workspaceFolder}/CM7/build/Project_CM7.elf"
+                },
+                {
+                    "imageFileName": "${workspaceFolder}/CM4/build/Project_CM4.elf",
+                    "symbolFileName": "${workspaceFolder}/CM4/build/Project_CM4.elf"
+                }
+            ]
+        },
+        {
+            "type": "jlinkgdbtarget",
+            "request": "launch",
+            "name": "CM4 Attach (compound only)",
+            "origin": "snippet",
+            "cwd": "${workspaceFolder}",
+            "runEntry": "",
+            "deviceName": "STM32H745ZIT6",
+            "deviceCore": "Cortex-M4",
+            "serverDevice": "STM32H745ZI_M4",
+            "serverInterface": "SWD",
+            "serverSpeed": "4000",
+            "serverPort": "2341",
+            "serverReset": "None",
+            "serverStartupDelay": "2000",
+            "imagesAndSymbols": [
+                {
+                    "symbolFileName": "${workspaceFolder}/CM4/build/Project_CM4.elf"
+                }
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug Dual-Core",
+            "configurations": [
+                "Debug CM7",
+                "CM4 Attach (compound only)"
+            ],
+            "stopAll": true
+        }
+    ]
+}
